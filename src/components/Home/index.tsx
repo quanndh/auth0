@@ -2,7 +2,7 @@
 
 import { useUser } from "@auth0/nextjs-auth0/client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./home.module.css";
 
 export const HomePage = () => {
@@ -10,7 +10,11 @@ export const HomePage = () => {
   const [password, setPassword] = useState("");
   const [newUser, setNewUser] = useState<any>();
 
-  const { user, error, isLoading } = useUser();
+  const { user, error, isLoading, checkSession } = useUser();
+
+  useEffect(() => {
+    checkSession();
+  }, []);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>{error.message}</div>;
