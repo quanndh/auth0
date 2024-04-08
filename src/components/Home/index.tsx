@@ -11,18 +11,18 @@ export const HomePage = () => {
   const [password, setPassword] = useState("");
   const [newUser, setNewUser] = useState<any>();
 
+  const webAuth = new auth0.WebAuth({
+    domain: process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL ?? "",
+    clientID: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? "",
+    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/authorized`,
+    audience: `${process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL}/api/v2/`,
+    scope: "openid profile email",
+    responseType: "token",
+  });
+
   const { user, error, isLoading } = useUser();
   let interval: NodeJS.Timeout;
   useEffect(() => {
-    const webAuth = new auth0.WebAuth({
-      domain: process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL ?? "",
-      clientID: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? "",
-      redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/authorized`,
-      audience: `${process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL}/api/v2/`,
-      scope: "openid profile email",
-      responseType: "token",
-    });
-
     const authCheck = sessionStorage.getItem("auth_check");
     if (!authCheck) {
       webAuth.checkSession({}, (err, res) => {
@@ -50,7 +50,13 @@ export const HomePage = () => {
   if (error) return <div>{error.message}</div>;
 
   const handleLogin = async () => {
-    window.location.href = "/api/auth/login";
+    webAuth.checkSession({}, (err, res) => {
+      sessionStorage.setItem("auth_check", "1");
+      if (res.accessToken) {
+        return (window.location.href = "/api/auth/silent-login");
+      }
+      window.location.href = "/api/auth/login";
+    });
   };
 
   const handleLogout = async () => {
