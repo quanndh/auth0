@@ -11,27 +11,42 @@ export const HomePage = () => {
   const [password, setPassword] = useState("");
   const [newUser, setNewUser] = useState<any>();
 
-  const { user, error, isLoading, checkSession } = useUser();
-
+  const { user, error, isLoading } = useUser();
+  let interval: NodeJS.Timeout;
   useEffect(() => {
-    checkSession();
+    const webAuth = new auth0.WebAuth({
+      domain: process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL ?? "",
+      clientID: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? "",
+      redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/authorized`,
+      audience: `${process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL}/api/v2/`,
+      scope: "openid profile email",
+      responseType: "token",
+    });
 
-    // const webAuth = new auth0.WebAuth({
-    //   domain: process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL ?? "",
-    //   clientID: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? "",
-    //   redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/authorized`,
-    //   audience: `${process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL}/api/v2/`,
-    //   scope: "openid profile email",
-    //   responseType: "token",
-    // });
-    // const authSession = sessionStorage.getItem("auth_sess");
-    // if (authSession) return;
-    // webAuth.checkSession({}, (err, res) => {
-    //   sessionStorage.setItem("auth_sess", "1");
-    //   if (res.accessToken) {
-    //     window.location.href = "/api/auth/silent-login";
-    //   }
-    // });
+    const authCheck = sessionStorage.getItem("auth_check");
+    if (!authCheck) {
+      webAuth.checkSession({}, (err, res) => {
+        sessionStorage.setItem("auth_check", "1");
+        if (res.accessToken) {
+          window.location.href = "/api/auth/silent-login";
+        }
+      });
+    }
+
+    interval = setInterval(() => {
+      webAuth.checkSession({}, (err, res) => {
+        sessionStorage.setItem("auth_sess", "1");
+        if (res.accessToken) {
+          window.location.href = "/api/auth/silent-login";
+        } else {
+          window.location.href = "/api/auth/logout";
+        }
+      });
+    }, 900 * 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   if (isLoading) return <div>Loading...</div>;
@@ -42,7 +57,7 @@ export const HomePage = () => {
   };
 
   const handleLogout = async () => {
-    sessionStorage.removeItem("auth_sess");
+    sessionStorage.removeItem("auth_check");
     window.location.href = "/api/auth/logout";
   };
 
