@@ -35,10 +35,7 @@ export const HomePage = () => {
 
     interval = setInterval(() => {
       webAuth.checkSession({}, (err, res) => {
-        sessionStorage.setItem("auth_sess", "1");
-        if (res.accessToken) {
-          window.location.href = "/api/auth/silent-login";
-        } else {
+        if (!res.accessToken) {
           window.location.href = "/api/auth/logout";
         }
       });
