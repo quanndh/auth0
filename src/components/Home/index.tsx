@@ -4,6 +4,7 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "./home.module.css";
+import auth0 from "auth0-js";
 
 export const HomePage = () => {
   const [email, setEmail] = useState("");
@@ -14,6 +15,23 @@ export const HomePage = () => {
 
   useEffect(() => {
     checkSession();
+
+    const webAuth = new auth0.WebAuth({
+      domain: process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL ?? "",
+      clientID: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? "",
+      redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/authorized`,
+      audience: `${process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL}/api/v2/`,
+      scope: "openid profile email",
+      responseType: "token",
+    });
+    const authSession = sessionStorage.getItem("auth_sess");
+    if (authSession) return;
+    webAuth.checkSession({}, (err, res) => {
+      sessionStorage.setItem("auth_sess", "1");
+      if (res.accessToken) {
+        window.location.href = "/api/auth/silent-login";
+      }
+    });
   }, []);
 
   if (isLoading) return <div>Loading...</div>;
@@ -24,6 +42,7 @@ export const HomePage = () => {
   };
 
   const handleLogout = async () => {
+    sessionStorage.removeItem("auth_sess");
     window.location.href = "/api/auth/logout";
   };
 
